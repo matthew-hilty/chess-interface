@@ -1,0 +1,108 @@
+define ([
+  'jFns'
+  'specConstants'
+  'constants'
+  'constructors'
+  'utilities'
+  'slider'
+], (j, sc, c, g, u, sl) ->
+
+  {
+    descr
+    xdescr
+    t
+    xt
+    test-spec
+    to-throw
+    to-be
+    to-equal
+    to-be-true
+    to-be-false
+    satisfies
+    contravenes
+    throws
+    each-fn-result-equals
+    each-satisfies
+    each-contravenes
+    each-throws
+    to-be-array
+    to-be-fn
+    to-be-nbr
+    to-be-array
+    to-have-length
+    test-predicate
+    test-transformation
+    test-throwing-transformation
+    gen-pred-guards
+  } = j
+
+  descr 'test slider.cough' (->
+
+    gen-pos = g.generate-position
+
+    pos2 = gen-pos (7, 5)
+
+    initial-board = sc.initial-board
+
+    t 'test sl.getPotentialMoves' (->
+      fn = sl.getPotentialMoves
+
+      local-pos = g.generate-position (0, 0)
+
+      bd1 = 'rn--------------------------------------------------------------'
+      offsets1 = [[1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0], [7, 0]]
+      to-equal offsets1 (fn (bd1, local-pos, undefined, undefined, c.rook))
+
+      bd2 = 'rN--------------------------------------------------------------'
+      offsets2 = [[1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0], [7, 0],
+                  [0, 1]]
+      to-equal offsets2 (fn (bd2, local-pos, undefined, undefined, c.rook))
+
+      bd3 = 'r-------n-------------------------------------------------------'
+      offsets3 = [[0, 1], [0, 2], [0, 3], [0, 4], [0, 5], [0, 6], [0, 7]]
+      to-equal offsets3 (fn (bd3, local-pos, undefined, undefined, c.rook))
+
+      bd4 = 'q-n------------------------n------------------------------------'
+      offsets4 =
+        [
+          [1, 1], [2, 2],
+          [1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0], [7, 0],
+          [0, 1]
+        ]
+      to-equal offsets4 (fn (bd4, local-pos, undefined, undefined, c.queen))
+
+      bd5 = '------------------------------------n--------------------------B'
+      offsets5 = [[6, 6], [5, 5], [4, 4]]
+      to-equal offsets5 (fn (
+        bd5, gen-pos (7, 7), undefined, undefined, c.bishop))
+
+    )
+
+    # TODO: Add specs.
+    t 'test sl.getPotentialKingAttacks' (->)
+
+    t 'test sl.modifyCastlingRights' (->
+      fn = sl.modifyCastlingRights
+      to-equal c.full-castling-rts (fn c.full-castling-rts)
+      to-equal c.no-castling-rts (fn c.no-castling-rts)
+    )
+
+    t 'test sl.move' (->
+      fn = sl.move
+      res = 'rnbqkbnrppppp-pp--------------------------------PPPPPPPPRNBQKpNR'
+      to-equal res (fn (initial-board, gen-pos (1, 5)) pos2)
+    )
+
+    t 'test sl.setPassantPosition' (->
+      fn = sl.setPassantPosition
+      to-equal c.unset-passant-pos (fn ())
+    )
+
+    t 'test sl.setPromotionPosition' (->
+      fn = sl.setPromotionPosition
+      to-equal c.unset-promotion-pos (fn ())
+    )
+
+  )
+
+)

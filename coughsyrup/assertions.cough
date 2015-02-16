@@ -1,0 +1,125 @@
+define (['types'], \y ->
+
+  vow = \condition \message ->
+    throw new Error (message) unless condition
+
+  vow-with = \predicate \message \val ->
+    vow (predicate val) message
+
+  unless-undefined = \pred \val ->
+    val == undefined || pred val
+
+  validation-pairs = [
+    [y.board?,                 'board'                ]
+    [y.bounded?,               'bounded number'       ]
+    [y.castling-right?,        'castling right'       ]
+    [y.castling-right-set?,    'castling right set'   ]
+    [y.chessman?,              'chessman'             ]
+    [y.chessman-type?,         'chessman type'        ]
+    [y.color?,                 'color'                ]
+    [y.color-pair?,            'color pair'           ]
+    [y.context?,               'context'              ]
+    [y.fen?,                   'fen'                  ]
+    [y.fen-board?,             'fen board'            ]
+    [y.index?,                 'index'                ]
+    [y.integral-pair?,         'integral pair'        ]
+    [y.non-negative-integer?,  'non-negative integer' ]
+    [y.pair?,                  'pair'                 ]
+    [y.passant-position?,      'passant position'     ]
+    [y.passant-position-code?, 'passant position code']
+    [y.pawn-direction?,        'pawn direction'       ]
+    [y.player?,                'player'               ]
+    [y.position?,              'position'             ]
+    [y.position-code?,         'position code'        ]
+    [y.position-component?,    'position component'   ]
+    [y.promotion-position?,    'promotion position'   ]
+    [y.square?,                'square'               ]
+    [y.string?,                'string'               ]
+  ]
+
+  generate-singular-validator = ([pred, str]) ->
+    vow-with pred "Invalid #{str}"
+
+  singular-validators = [
+    vow-board
+    vow-bounded
+    vow-castling-right
+    vow-castling-right-set
+    vow-chessman
+    vow-chessman-type
+    vow-color
+    vow-color-pair
+    vow-context
+    vow-fen
+    vow-fen-board
+    vow-index
+    vow-integral-pair
+    vow-non-negative-integer
+    vow-pair
+    vow-passant-position
+    vow-passant-position-code
+    vow-pawn-direction
+    vow-player
+    vow-position
+    vow-position-code
+    vow-position-component
+    vow-promotion-position
+    vow-square
+    vow-string
+  ] = validation-pairs.map generate-singular-validator
+
+  generate-plural-validator = \validator ->
+    \val -> val.map validator
+
+  plural-validators = [
+    vow-all-passant-positions
+    vow-all-positions
+    vow-all-position-components
+  ] = [
+    vow-passant-position
+    vow-position
+    vow-position-component
+  ].map generate-plural-validator
+
+  vow-message-when-set = \val ->
+    msg = 'Invalid message'
+    vow-with (unless-undefined y.string?) msg val
+
+  vow-promotion-position-when-set = \val ->
+    msg = 'Invalid promotion position'
+    vow-with (unless-undefined y.promotion-position?) msg val
+
+  return {
+    vow
+    vow-all-passant-positions
+    vow-all-position-components
+    vow-all-positions
+    vow-board
+    vow-bounded
+    vow-castling-right
+    vow-castling-right-set
+    vow-chessman
+    vow-chessman-type
+    vow-color
+    vow-color-pair
+    vow-context
+    vow-fen
+    vow-fen-board
+    vow-index
+    vow-integral-pair
+    vow-message-when-set
+    vow-non-negative-integer
+    vow-pair
+    vow-passant-position
+    vow-passant-position-code
+    vow-promotion-position-when-set
+    vow-pawn-direction
+    vow-player
+    vow-position
+    vow-position-code
+    vow-promotion-position
+    vow-square
+    vow-string
+  }
+
+)

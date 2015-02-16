@@ -1,0 +1,162 @@
+define ([
+  'base-helpers'
+  'constants'
+  'types'
+  'assertions'
+], (_, c, y, v) ->
+
+  type-of = {}
+  type-of[c.black-king  ] = c.king
+  type-of[c.black-queen ] = c.queen
+  type-of[c.black-rook  ] = c.rook
+  type-of[c.black-bishop] = c.bishop
+  type-of[c.black-knight] = c.knight
+  type-of[c.black-pawn  ] = c.pawn
+
+  # -----------------
+  # Helper Functions
+  # -----------------
+
+  to-1d = \pos ->
+    # Start testing mode.
+    v.vow-position pos
+    # End testing mode.
+
+    rank = rank-of pos
+    file = file-of pos
+    8 * rank + file
+
+  # No assertions b/c #opponent-mated? encounters indices < 0 or > 63.
+  to-2d = \idx -> [Math.floor (idx / 8), idx % 8]
+
+  corresponding-black-chessman = \chessman ->
+    # Start testing mode.
+    v.vow-chessman chessman
+    # End testing mode.
+    if (_.white? chessman) then (_.to-black chessman) else chessman
+
+  of-color? = \color \square ->
+    # Start testing mode.
+    v.vow-color color
+    v.vow-square square
+    # End testing mode.
+
+    color == color-of square
+
+  # -----------
+  # Extractors
+  # -----------
+
+  chessman-positions-from = (board, color) ->
+    # Start testing mode.
+    v.vow-board board
+    v.vow-color color
+    # End testing mode.
+
+    i = -1
+    split-board = board.split ''
+    positions = []
+
+    get-pos = \color ->
+      color-pred = of-color? color
+
+      \sq ->
+        i += 1
+        positions.push (to-2d i) if color-pred sq
+
+    split-board.forEach (get-pos color)
+
+    positions
+
+  chessman-type-at = \board \pos ->
+    # Start testing mode.
+    v.vow-board board
+    v.vow-position pos
+    # End testing mode.
+    chessman-type-of (square-at board pos)
+
+  chessman-type-of = \chessman ->
+    # Start testing mode.
+    v.vow-chessman chessman
+    # End testing mode.
+
+    abbrev = corresponding-black-chessman chessman
+    type-of[abbrev]
+
+  color-at = \board \pos ->
+    # Start testing mode.
+    v.vow-board board
+    v.vow-position pos
+    # End testing mode.
+    color-of (square-at board pos)
+
+  color-of = \square ->
+    # Start testing mode.
+    v.vow-square square
+    # End testing mode.
+
+    switch
+      when (_.black? square) then c.black
+      when (_.white? square) then c.white
+      else c.absent-color
+
+  colors-at = \board \positions ->
+    # Start testing mode.
+    v.vow-board board
+    v.vow-all-positions positions
+    # End testing mode.
+    positions.map (color-at board)
+
+  file-of = ([rank, file]) ->
+    # Start testing mode.
+    v.vow-position [rank, file]
+    # End testing mode.
+
+    file
+
+  promotion-position-from = \ctx ->
+    # Start testing mode.
+    v.vow-context ctx
+    # End testing mode.
+
+    ctx.promotionPosition
+
+  rank-&-file-from = \val ->
+    # Start testing mode.
+    v.vow-integral-pair val
+    # End testing mode.
+
+    val
+
+  rank-of = ([rank, file]) ->
+    # Start testing mode.
+    v.vow-position [rank, file]
+    # End testing mode.
+
+    rank
+
+  square-at = \board \pos ->
+    # Start testing mode.
+    v.vow-board board
+    v.vow-position pos
+    # End testing mode.
+    board[to-1d pos]
+
+  return {
+    chessman-positions-from
+    chessman-type-at
+    chessman-type-of
+    corresponding-black-chessman
+    color-at
+    color-of
+    colors-at
+    file-of
+    promotion-position-from
+    rank-&-file-from
+    rank-of
+    square-at
+    to-1d
+    to-2d
+  }
+
+)

@@ -1,0 +1,99 @@
+define ([
+  'jFns'
+  'specConstants'
+  'constants'
+  'constructors'
+  'utilities'
+  'knight'
+], (j, sc, c, g, u, n) ->
+
+  {
+    descr
+    xdescr
+    t
+    xt
+    test-spec
+    to-throw
+    to-be
+    to-equal
+    to-be-true
+    to-be-false
+    satisfies
+    contravenes
+    throws
+    each-fn-result-equals
+    each-satisfies
+    each-contravenes
+    each-throws
+    to-be-array
+    to-be-fn
+    to-be-nbr
+    to-be-array
+    to-have-length
+    test-predicate
+    test-transformation
+    test-throwing-transformation
+    gen-pred-guards
+  } = j
+
+  descr 'test knight.cough' (->
+
+    gen-pos = g.generate-position
+    no-castling-rts = c.no-castling-rts
+    unset-passant-pos = c.unset-passant-pos
+
+    pos1 = g.generate-position (3, 3)
+
+    bd1 = '---------------------------n------------------------------------'
+    bd2 = '----------p-p----p---p-----n-----p---p----p---------------------'
+    bd3 = '----------P-p----P---p-----n-----p---p----p---------------------'
+
+    results1 = [
+      [4, 5], [4, 1], [2, 5], [2, 1], [5, 4], [5, 2], [1, 4], [1, 2] ]
+
+    results2 = [[5, 4]]
+    results3 = [[2, 1], [5, 4], [1, 2]]
+
+    t 'test n.getPotentialKingAttacks' (->
+      fn = n.getPotentialKingAttacks
+      to-equal results1 (fn (bd1, pos1))
+      to-equal results3 (fn (bd3, pos1))
+    )
+
+    t 'test n.getPotentialMoves' (->
+      fn = n.getPotentialMoves
+      to-equal results1 (fn (bd1, pos1))
+      to-equal results2 (fn (bd2, pos1))
+      to-equal results3 (fn (bd3, pos1))
+    )
+
+    t 'test n.modifyCastlingRights' (->
+      fn = n.modifyCastlingRights
+
+      Kkq = 'Kkq'
+      to-equal Kkq (fn Kkq)
+
+      to-equal no-castling-rts (fn no-castling-rts)
+
+    )
+
+    t 'test n.move' (->
+      fn = n.move
+      bd4 = '-n--------P-p----P---p-----------p---p----p---------------------'
+      to-equal bd4 (fn (bd3, pos1) (gen-pos (0, 1)))
+    )
+
+    t 'test n.setPassantPosition' (->
+      fn = n.setPassantPosition
+      to-equal unset-passant-pos (fn ())
+      to-equal unset-passant-pos (fn ())
+    )
+
+    t 'test n.setPromotionPosition' (->
+      fn = n.setPromotionPosition
+      to-equal c.unset-promotion-pos (fn ())
+    )
+
+  )
+
+)

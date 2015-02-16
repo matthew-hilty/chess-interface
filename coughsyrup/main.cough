@@ -1,0 +1,24 @@
+require.config
+  shim :
+    jqueryUi   :
+      deps     : ['jquery']
+      exports  : 'jqueryUi'
+
+  paths :
+    jquery    : '../vendor/jquery.min'
+    jqueryUi  : '../vendor/jquery-ui.min'
+    react     : '../node_modules/react/dist/react.min'
+
+require (['constants', 'fen-service', 'game-ui'], (c, fs, game) ->
+
+  game.render c.initial-context
+
+  # An octothorpe ('#') prefixes a fragment identifer; it must be removed.
+  slice-# = \str -> str.slice 1
+
+  # Functions between demarcating semicolons are not applied, but composed.
+  window.addEventListener('popstate', ->
+    ; game.render fs.decode-fen slice-# decodeURI ; window.location.hash
+  )
+
+)

@@ -1,0 +1,96 @@
+define ([
+  'base-helpers'
+  'constants'
+  'extractors'
+  'slider'
+  'assertions'
+], (_, c, x, slider-fns, v) ->
+
+  KQk = 'KQk'
+  KQq = 'KQq'
+  Kkq = 'Kkq'
+  Qkq = 'Qkq'
+  KQ  = 'KQ'
+  Kk  = 'Kk'
+  Kq  = 'Kq'
+  Qk  = 'Qk'
+  Qq  = 'Qq'
+  kq  = 'kq'
+  K   = 'K'
+  Q   = 'Q'
+  k   = 'k'
+  q   = 'q'
+  NO  = '-'
+
+  new-castling-rts = {}
+
+  new-castling-rts[c.white] =
+    kingside :
+      KQkq : Qkq, KQk : Qk, KQq : Qq, KQ  : Q
+      Kkq  : kq,  Kk  : k,  Kq  : q,  K   : NO
+      Qkq  : Qkq, Qk  : Qk, Qq  : Qq, Q   : Q
+      kq   : kq,  k   : k,  q   : q,  '-' : NO
+    queenside :
+      KQkq : Kkq, KQk : Kk, KQq : Kq, KQ  : K
+      Kkq : Kkq,  Kk  : Kk, Kq  : Kq, K   : K
+      Qkq : kq,   Qk  : k,  Qq  : q,  Q   : NO
+      kq  : kq,   k   : k,  q   : q,  '-' : NO
+
+  new-castling-rts[c.black] =
+    kingside :
+      KQkq : KQq, Qkq : Qq, Kkq : Kq, kq  : q
+      KQq  : KQq, Qq  : Qq, Kq  : Kq, q   : q
+      KQk  : KQ,  Qk  : Q,  Kk  : K,  k   : NO
+      KQ   : KQ,  Q   : Q,  K   : K,  '-' : NO 
+    queenside :
+      KQkq : KQk, Qkq : Qk, Kkq : Kk, kq  : k
+      KQk  : KQk, Qk  : Qk, Kk  : Kk, k   : k
+      KQq  : KQ,  Qq  : Q,  Kq  : K,  q   : NO
+      KQ   : KQ,  Q   : Q,  K   : K,  '-' : NO 
+
+  kingside? = \src ->
+    x.file-of src >= 4
+
+  modifyCastlingRights = (rts, src) ->
+    # Start testing mode.
+    v.vow-castling-right-set rts
+    v.vow-position src
+    # End testing mode.
+
+    [src-rank, src-file] = x.rank-&-file-from src
+    rook-color = if src-rank == 0 then c.black else c.white
+    side = which-side? src
+
+    new-castling-rts[rook-color][side][rts]
+
+  which-side? = \src ->
+    if kingside? src then 'kingside' else 'queenside'
+
+  pf = public-fns = _.defaults slider-fns { modifyCastlingRights }
+
+  # --------------------------
+  # Override mixin functions.
+  # --------------------------
+
+  pf.getPotentialMoves = do (getPotentialMoves = pf.getPotentialMoves) ->
+    (bd, src) ->
+      # Start testing mode.
+      v.vow-board bd
+      v.vow-position src
+      # End testing mode.
+
+      getPotentialMoves (bd, src, undefined, undefined, c.rook)
+
+  pf.getPotentialKingAttacks =
+    do (getPotentialKingAttacks = pf.getPotentialKingAttacks) ->
+      (bd, src) ->
+        # Start testing mode.
+        v.vow-board bd
+        v.vow-position src
+        # End testing mode.
+
+        getPotentialKingAttacks (bd, src, c.rook)
+
+  return public-fns
+
+)

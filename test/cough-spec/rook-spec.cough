@@ -1,0 +1,107 @@
+define ([
+  'jFns'
+  'specConstants'
+  'constants'
+  'constructors'
+  'utilities'
+  'rook'
+], (j, sc, c, g, u, r) ->
+
+  {
+    descr
+    xdescr
+    t
+    xt
+    test-spec
+    to-throw
+    to-be
+    to-equal
+    to-be-true
+    to-be-false
+    satisfies
+    contravenes
+    throws
+    each-fn-result-equals
+    each-satisfies
+    each-contravenes
+    each-throws
+    to-be-array
+    to-be-fn
+    to-be-nbr
+    to-be-array
+    to-have-length
+    test-predicate
+    test-transformation
+    test-throwing-transformation
+    gen-pred-guards
+  } = j
+
+  descr 'test rook.cough' (->
+
+    gen-pos = g.generate-position
+
+    pos2 = gen-pos (7, 5)
+
+    initial-board = sc.initial-board
+
+    t 'test r.getPotentialMoves' (->
+      fn = r.getPotentialMoves
+
+      local-pos = g.generate-position (0, 0)
+
+      bd1 = 'rn--------------------------------------------------------------'
+      offsets1 = [[1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0], [7, 0]]
+      to-equal offsets1 (fn (bd1, local-pos))
+
+      bd2 = 'rN--------------------------------------------------------------'
+      offsets2 = [[1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0], [7, 0],
+                  [0, 1]]
+      to-equal offsets2 (fn (bd2, local-pos))
+
+      bd3 = 'r-------n-------------------------------------------------------'
+      offsets3 = [[0, 1], [0, 2], [0, 3], [0, 4], [0, 5], [0, 6], [0, 7]]
+      to-equal offsets3 (fn (bd3, local-pos))
+
+    )
+
+    t 'test r.getPotentialKingAttacks' (->
+      fn = r.getPotentialKingAttacks
+
+      bd1 = 'rN--------------------------------------------------------------'
+
+      offsets1 = [
+        [1, 0], [2, 0], [3, 0], [4, 0], [5, 0], [6, 0], [7, 0]
+        [0, 1]
+      ]
+
+      to-equal offsets1 (fn (bd1, gen-pos (0, 0)))
+
+    )
+
+    t 'test r.modifyCastlingRights' (->
+      fn = r.modifyCastlingRights
+      to-equal 'KQk' (fn ('KQkq', gen-pos (0, 0)))
+      to-equal 'q' (fn ('kq', gen-pos (0, 7)))
+      to-equal '-' (fn ('-', gen-pos (7, 0)))
+      to-equal 'q' (fn ('Kq', gen-pos (7, 7)))
+    )
+
+    t 'test r.move' (->
+      fn = r.move
+      res = 'rnbqkbnrppppp-pp--------------------------------PPPPPPPPRNBQKpNR'
+      to-equal res (fn (initial-board, gen-pos (1, 5)) pos2)
+    )
+
+    t 'test r.setPassantPosition' (->
+      fn = r.setPassantPosition
+      to-equal c.unset-passant-pos (fn ())
+    )
+
+    t 'test r.setPromotionPosition' (->
+      fn = r.setPromotionPosition
+      to-equal c.unset-promotion-pos (fn ())
+    )
+
+  )
+
+)

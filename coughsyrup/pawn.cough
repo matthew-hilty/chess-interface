@@ -1,0 +1,201 @@
+define ([
+  'base-helpers'
+  'constants'
+  'constructors'
+  'utilities'
+  'extractors'
+  'chessman'
+  'assertions'
+], (_, c, g, u, x, chessman-fns, v) ->
+
+  home-ranks = {}
+  home-ranks[c.black] = 1
+  home-ranks[c.white] = 6
+
+  directions = {}
+  directions[c.black] = 1
+  directions[c.white] = -1
+
+  promotion-ranks = {}
+  promotion-ranks[c.black] = 7
+  promotion-ranks[c.white] = 0
+
+  advancing-2-squares? = (src, tgt) ->
+    # Start testing mode.
+    v.vow-all-positions [src, tgt]
+    # End testing mode.
+    Math.abs (u.rank-difference (src, tgt)) > 1
+
+  at-home-rank? = (color, rank) ->
+    home-ranks[color] == rank
+
+  at-promotion-rank? = (color, rank) ->
+    promotion-ranks[color] == rank
+
+  behind = (dir, position) ->
+    # Start testing mode.
+    v.vow-pawn-direction dir
+    v.vow-position position
+    # End testing mode.
+
+    dir = -1 * dir
+    [rank, file] = x.rank-&-file-from position
+
+    [rank + dir, file]
+
+  delete-passant-if-enpassant-capture = (bd, color, set-passant, tgt) ->
+    # Start testing mode.
+    v.vow-board bd
+    v.vow-color color
+    v.vow-all-positions [set-passant, tgt]
+    # End testing mode.
+
+    if u.same-position? tgt set-passant
+      delete-passed-pawn (bd, color, set-passant)
+    else
+      bd
+
+  delete-passed-pawn = (board, color, passant) ->
+    direction = direction-for color
+    u.replace (c.empty-square, board, behind (direction, passant))
+
+  direction-for = \color ->
+    directions[color]
+
+  get-diagonal-positions = (rank, file, dir) ->
+    gen-pos = g.generate-position!.bind (null, rank + dir)
+    ([file - 1, file + 1].map gen-pos).filter u.inessent?
+
+  get-diag-attacks = (board, rank, file, color, dir, passant) ->
+    # Start testing mode.
+    v.vow-board board
+    v.vow-all-position-components [rank, file]
+    v.vow-color color
+    v.vow-passant-position passant
+    v.vow-pawn-direction dir
+    # End testing mode.
+
+    foe-present? = \pos -> u.opponent? [color, color-at pos]
+    passant?     = u.same-position? passant
+    available?   = \val -> foe-present? val || passant? val
+    color-at     = x.color-at board
+    diag-attacks = get-diagonal-positions (rank, file, dir)
+    
+    diag-attacks.filter available?
+
+  get-fwd-moves = (board, rank, file, color, dir) ->
+    # Start testing mode.
+    v.vow-board board
+    v.vow-all-position-components [rank, file]
+    v.vow-color color
+    v.vow-pawn-direction dir
+    # End testing mode.
+
+    fwd-moves  = []
+    tgt1       = g.generate-position (rank + dir, file)
+    tgt1-color = x.color-at board tgt1
+
+    return fwd-moves unless u.color-absent? tgt1-color
+
+    fwd-moves.push tgt1
+
+    return fwd-moves unless at-home-rank? (color, rank)
+
+    # Because, for the vast majority of the game, pawns may
+    # only advance one square, 'g.generate-position',
+    # 'x.color-at board', and 'u.color-absent?' are not memoized
+    # with local variables.
+
+    tgt2       = g.generate-position (rank + 2 * dir, file)
+    tgt2-color = x.color-at board tgt2
+
+    return fwd-moves unless u.color-absent? tgt2-color
+
+    fwd-moves.push tgt2
+
+    return fwd-moves
+
+  getPotentialKingAttacks = (bd, src) ->
+    # Start testing mode.
+    v.vow-board bd
+    v.vow-position src
+    # End testing mode.
+
+    color = x.color-at bd src
+
+    [rank, file]   = x.rank-&-file-from src
+    pawn-direction = direction-for color
+
+    get-diagonal-positions (rank, file, pawn-direction)
+
+  getPotentialMoves = (bd, src, rts, passant) ->
+    # Start testing mode.
+    v.vow-board bd
+    v.vow-position src
+    v.vow-passant-position passant
+    # End testing mode.
+
+    color = x.color-at bd src
+    [rank, file] = x.rank-&-file-from src
+    dir = direction-for color
+
+    fwd-moves    = get-fwd-moves (bd, rank, file, color, dir)
+    diag-attacks = get-diag-attacks (bd, rank, file, color, dir, passant)
+    moves        = fwd-moves.concat diag-attacks
+
+    moves.filter u.inessent?
+
+  setPassantPosition = (pawn-color, src, tgt) ->
+    # Start testing mode.
+    v.vow-color pawn-color
+    v.vow-all-positions [src, tgt]
+    # End testing mode.
+
+    if advancing-2-squares? (src, tgt)
+      dir = direction-for pawn-color
+      behind (dir, tgt)
+    else
+      c.unset-passant-pos
+
+  setPromotionPosition = (pawn-color, tgt) ->
+    # Start testing mode.
+    v.vow-color pawn-color
+    v.vow-position tgt
+    # End testing mode.
+
+    [tgt-rank] = x.rank-&-file-from tgt
+
+    if at-promotion-rank? (pawn-color, tgt-rank)
+      tgt
+    else
+      c.unset-promotion-pos
+
+  pf = public-fns = _.defaults chessman-fns {
+    getPotentialKingAttacks
+    getPotentialMoves
+    setPassantPosition
+    setPromotionPosition
+  }
+
+  # --------------------------
+  # Override mixin functions.
+  # --------------------------
+
+  pf.move = do (simple-move = pf.move) ->
+    (bd, src, passant) -> \tgt ->
+      # Start testing mode.
+      v.vow-board bd
+      v.vow-all-positions [src, tgt]
+      v.vow-passant-position passant
+      # End testing mode.
+
+      bd-after-basic-move = simple-move (bd, src) tgt
+
+      return bd-after-basic-move if u.passant-position-unset? passant
+
+      delete-passant-if-enpassant-capture (
+        bd-after-basic-move, (x.color-at bd src), passant, tgt)
+
+  return public-fns
+
+)

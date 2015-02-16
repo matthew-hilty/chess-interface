@@ -1,0 +1,31 @@
+define ([
+  'base-helpers'
+  'constants'
+  'constructors'
+  'extractors'
+  'utilities'
+  'stepper'
+  'assertions'
+], (_, c, g, x, u, stepper-fns, v) ->
+
+  pf = public-fns = _.defaults stepper-fns {}
+
+  # --------------------------
+  # Override mixin functions.
+  # --------------------------
+
+  pf.getPotentialKingAttacks =
+    do (getPotentialMoves = pf.getPotentialMoves) ->
+      (bd, src) ->
+        # Start testing mode.
+        v.vow-board bd
+        v.vow-position src
+        # End testing mode.
+
+        getPotentialMoves (bd, src, undefined, undefined, c.knight)
+
+  pf.getPotentialMoves = pf.getPotentialKingAttacks
+
+  return public-fns
+
+)

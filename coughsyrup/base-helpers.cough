@@ -1,0 +1,26 @@
+define (['constants'], (c) ->
+
+  black? = \sq ->
+    sq == to-black sq && sq != c.empty-square
+
+  defaults = \mixin \val ->
+    for prop of mixin
+      val[prop] = mixin[prop] if val[prop] == undefined
+    return val
+
+  to-black = \str -> str.toLowerCase ()
+
+  to-white = \str -> str.toUpperCase ()
+
+  white? = \sq ->
+    sq == to-white sq && sq != c.empty-square
+
+  return {
+    black?
+    defaults
+    white?
+    to-black
+    to-white
+  }
+
+)

@@ -1,0 +1,52 @@
+define ([
+  'base-helpers'
+  'constants'
+  'types'
+  'assertions'
+], (_, c, y, v) ->
+
+  black-chessman-from = {}
+  black-chessman-from[c.king  ] = c.black-king
+  black-chessman-from[c.queen ] = c.black-queen
+  black-chessman-from[c.rook  ] = c.black-rook
+  black-chessman-from[c.bishop] = c.black-bishop
+  black-chessman-from[c.knight] = c.black-knight
+  black-chessman-from[c.pawn  ] = c.black-pawn
+
+  generate-chessman = (chessman-type, color) ->
+    # Start testing mode.
+    v.vow-chessman-type chessman-type
+    v.vow-color color
+    # End testing mode.
+
+    black-chessman = black-chessman-from[chessman-type]
+    if (y.black? color) then black-chessman else (_.to-white black-chessman)
+
+  generate-context =
+    (board, player, castlingRights, passantPosition, clock, moveNumber) ->
+      # Start testing mode.
+      v.vow-board board
+      v.vow-color player
+      v.vow-castling-right-set castlingRights
+      v.vow-passant-position passantPosition
+      # End testing mode.
+
+      { board, player, castlingRights, passantPosition, clock, moveNumber }
+
+  generate-position = (rank, file) ->
+    # Start testing mode.
+    v.vow-position [rank, file]
+    # End testing mode.
+    generate-position! (rank, file)
+
+  generate-position! = (rank, file) ->
+    [rank, file]
+
+  return {
+    generate-chessman
+    generate-context
+    generate-position
+    generate-position!
+  } 
+
+)

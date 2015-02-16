@@ -1,0 +1,73 @@
+define ( ->
+
+  descr  = \a1 \a2 -> describe (a1, a2)
+  xdescr = \a1 \a2 -> xdescribe (a1, a2)
+  t      = \a1 \a2 -> it (a1, a2)
+  xt     = \a1 \a2 -> xit (a1, a2)
+
+  test-spec = \spec \message \element ->
+    it (message, (-> spec element))
+
+  to-throw = \fn \arg -> expect (fn.bind (null, arg)) .toThrow ()
+
+  not-to-throw = \fn \arg ->
+    expect (fn.bind (null, arg)) .not .toThrow ()
+
+  to-be = \actual \expected -> expect (expected) .toBe actual
+
+  to-equal = \actual \expected -> expect (expected) .toEqual actual
+
+  to-be-true  = \expected -> expect (expected) .toEqual true
+
+  to-be-false = \expected -> expect (expected) .toEqual false
+
+  satisfies = \predicate \input ->
+    expect (predicate (input)) .toEqual true
+
+  contravenes = \predicate \input ->
+    expect(predicate (input)).toEqual false
+
+  throws = \predicate \input -> to-throw predicate input
+
+  each-satisfies = \predicate \inputs ->
+    inputs.forEach (satisfies predicate)
+
+  each-contravenes = \predicate \inputs ->
+    inputs.forEach (contravenes predicate)
+
+  each-throws = \fn \inputs -> inputs.forEach (to-throw fn)
+
+  to-be-fn = \expected ->
+    expect (expected) .toEqual (jasmine.any (Function))
+
+  to-be-array = \val -> to-equal (jasmine.any Array) val
+  to-be-string = \val -> to-equal (jasmine.any String) val
+  to-be-nbr = \val -> to-equal (jasmine.any Number) val
+  to-have-length = \length \val -> to-equal length val.length
+
+  return {
+    contravenes
+    descr
+    each-contravenes
+    each-satisfies
+    each-throws
+    not-to-throw
+    satisfies
+    t
+    test-spec
+    throws
+    to-throw
+    to-be
+    to-equal
+    to-be-array
+    to-be-nbr
+    to-be-string
+    to-be-true
+    to-be-false
+    to-be-fn
+    to-have-length
+    xdescr
+    xt
+  }
+
+)

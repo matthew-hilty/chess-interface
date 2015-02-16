@@ -1,0 +1,154 @@
+define (['constants', 'extractors', 'types', 'assertions'], (c, x, y, v) ->
+
+  available? = (board, pos1) -> \pos2 ->
+    # Start testing mode.
+    v.vow-board board
+    v.vow-all-positions [pos1, pos2]
+    # End testing mode.
+
+    empty-at? board pos2 || do ->
+      color-pair = x.colors-at board [pos1, pos2]
+      opponent? color-pair
+
+  black? = \color ->
+    # Start testing mode.
+    v.vow-color color
+    # End testing mode.
+    color == c.black
+
+  color-absent? = \color ->
+    # Start testing mode.
+    v.vow-color color
+    # End testing mode.
+    color == c.absent-color
+
+  empty? = \square ->
+    # Start testing mode.
+    v.vow-square square
+    # End testing mode.
+    y.empty? square
+
+  empty-at? = \board \pos ->
+    # Start testing mode.
+    v.vow-board board
+    v.vow-position pos
+    # End testing mode.
+    empty? (x.square-at board pos)
+
+  rank-difference = (src, tgt) ->
+    # Start testing mode.
+    v.vow-all-positions [src, tgt]
+    # End testing mode.
+
+    (x.rank-of tgt) - (x.rank-of src)
+
+  file-difference = (src, tgt) ->
+    # Start testing mode.
+    v.vow-all-positions [src, tgt]
+    # End testing mode.
+
+    (x.file-of tgt) - (x.file-of src)
+
+  # No assertions b/c #inessent? is fundamental
+  # to the defintion of the 'position' type.
+  inessent? = \pos ->
+    y.inessent? pos
+
+  occupied? = \square ->
+    # Start testing mode.
+    v.vow-square square
+    # End testing mode.
+    ! (y.empty? square)
+
+  offsets-for = \chessman-type ->
+    # Start testing mode.
+    v.vow-chessman-type chessman-type
+    # End testing mode.
+    c.move-offsets[chessman-type]
+
+  opponent? = ([color1, color2]) ->
+    # Start testing mode.
+    v.vow-color-pair [color1, color2]
+    # End testing mode.
+    color2 != c.absent-color &&
+        color2 != color1 &&
+        color1 != c.absent-color
+
+  opponent-at? = (board, pos1) -> \pos2 ->
+    # Start testing mode.
+    v.vow-board board
+    v.vow-all-positions [pos1, pos2]
+    # End testing mode.
+    opponent? ([pos1, pos2].map (x.color-at board))
+
+  opposing-color = \active-color ->
+    # Start testing mode.
+    v.vow-color active-color
+    # End testing mode.
+    if black? active-color then c.white else c.black
+
+  passant-position-set? = \passant-position ->
+    # Start testing mode.
+    v.vow-passant-position passant-position
+    # End testing mode.
+    ! (passant-position-unset? passant-position)
+
+  passant-position-unset? = \passant-position ->
+    # Start testing mode.
+    v.vow-passant-position passant-position
+    # End testing mode.
+    passant-position == c.unset-passant-pos
+
+  promotion-position-set? = \promotion-position ->
+    # Start testing mode.
+    v.vow-promotion-position promotion-position
+    # End testing mode.
+    promotion-position != c.unset-promotion-pos
+
+  rank-difference = (src, tgt) ->
+    # Start testing mode.
+    v.vow-all-positions [src, tgt]
+    # End testing mode.
+
+    (x.rank-of tgt) - (x.rank-of src)
+
+  replace = (square, board, pos) ->
+    # Start testing mode.
+    v.vow-square square
+    v.vow-board board
+    v.vow-position pos
+    # End testing mode.
+    idx = x.to-1d pos
+    "#{board.slice (0, idx)}#{square}#{board.slice (idx + 1)}"
+
+  same-position? = \pos1 \pos2 ->
+    # Start testing mode.
+    v.vow-all-passant-positions [pos1, pos2]
+    # End testing mode.
+
+    passant-position-set? pos1 &&
+        pos1[0] == pos2[0] &&
+        pos1[1] == pos2[1]
+
+  to-2d = x.to-2d
+
+  return {
+    available?
+    black?
+    color-absent?
+    empty-at?
+    file-difference
+    inessent?
+    occupied?
+    offsets-for
+    opponent?
+    opposing-color
+    passant-position-unset?
+    promotion-position-set?
+    rank-difference
+    replace
+    same-position?
+    to-2d
+  }
+
+)

@@ -1,0 +1,83 @@
+define ([
+  'base-helpers'
+  'constructors'
+  'extractors'
+  'utilities'
+  'piece'
+  'assertions'
+], (_, g, x, u, piece-fns, v) ->
+
+  accumulate-till-blocked = (board, color1) -> (rank, file, dir) ->
+    possible-moves = []
+
+    [rank-diff, file-diff] = x.rank-&-file-from dir
+
+    gen-pos   = g.generate-position!
+    inessent? = u.inessent?
+    empty-at? = u.empty-at? board
+    color-at  = x.color-at board
+
+    loop
+      [rank, file] = [rank + rank-diff, file + file-diff]
+
+      new-pos = gen-pos (rank, file)
+
+      break unless inessent? new-pos
+
+      if empty-at? new-pos
+        possible-moves.push new-pos
+      else
+        color2 = color-at new-pos
+        possible-moves.push new-pos if u.opponent? ([color1, color2])
+        break
+
+    possible-moves
+
+  getPotentialKingAttacks = (bd, src, type) ->
+    # Start testing mode.
+    v.vow-board bd
+    v.vow-position src
+    v.vow-chessman-type type
+    # End testing mode.
+
+    getPotentialMoves (bd, src, undefined, undefined, type)
+
+  get-potential-moves = (board, src, chessman-type) ->
+    potential-moves = []
+    offsets         = u.offsets-for chessman-type
+    color           = x.color-at board src
+    accumulate      = accumulate-till-blocked (board, color)
+    [rank, file]    = x.rank-&-file-from src
+
+    for dir in offsets
+      potential-moves = potential-moves.concat (accumulate (rank, file, dir))
+
+    potential-moves
+
+  getPotentialMoves = (bd, src, rts, passant, type) ->
+    # Start testing mode.
+    v.vow-board bd
+    v.vow-position src
+    v.vow-chessman-type type
+    # End testing mode.
+
+    offsets     = u.offsets-for type
+    color       = x.color-at bd src
+    accumulate  = accumulate-till-blocked (bd, color)
+    [rank, file] = x.rank-&-file-from src
+
+    moves = []
+
+    for dir in offsets
+      moves = moves.concat (accumulate (rank, file, dir))
+
+    moves
+
+  public-fns = _.defaults piece-fns {
+    getPotentialKingAttacks
+    getPotentialMoves
+  }
+
+  return public-fns
+
+)

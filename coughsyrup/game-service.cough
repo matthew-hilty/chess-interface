@@ -1,0 +1,320 @@
+define ([
+  'base-helpers'
+  'constants'
+  'utilities'
+  'extractors'
+  'slider'
+  'king'
+  'rook'
+  'knight'
+  'pawn'
+  'fen-service'
+  'assertions'
+], (bh, c, u, x, slider-fns, king-fns, rook-fns, knight-fns, pawn-fns, fs, v) ->
+
+  dispatch-table = {}
+  dispatch-table[c.king  ] = king-fns
+  dispatch-table[c.queen ] = slider-fns
+  dispatch-table[c.rook  ] = rook-fns
+  dispatch-table[c.bishop] = slider-fns
+  dispatch-table[c.knight] = knight-fns
+  dispatch-table[c.pawn  ] = pawn-fns
+
+  add-msg = (ctx, msg) ->
+    (new-ctx = copy ctx).message = msg
+    new-ctx
+
+  attackable? = (board, color, pos) ->
+    # Start testing mode.
+    v.vow-board board
+    v.vow-position pos
+    # End testing mode.
+
+    vuln-positions = vulnerable-positions-for (board, color)
+    contains (vuln-positions, pos)
+
+  call = (fn-name, chessman-type) ->
+    # Start testing mode.
+    v.vow-string fn-name
+    v.vow-chessman-type chessman-type
+    # End testing mode.
+
+    dispatch-table[chessman-type][fn-name]
+
+  checkmate? = (bd, passant, color) ->
+    # Start testing mode.
+    v.vow-board bd
+    v.vow-passant-position passant
+    v.vow-color color
+    # End testing mode.
+
+    ally-positions = x.chessman-positions-from (bd, color)
+
+    for ally-pos in ally-positions
+      potential-moves =
+        getPotentialMoves (bd, ally-pos, c.no-castling-rts, passant)
+
+      for potential-mv in potential-moves
+        new-bd = move (bd, ally-pos, passant) potential-mv
+        return false unless in-check? (new-bd, color)
+
+    true
+
+  contains = (potential-positions, tgt) ->
+    potential-positions.some (u.same-position? tgt)
+
+  copy = \ctx ->
+    bh.defaults ctx {}
+
+  extract-props = \ctx ->
+    {
+      board
+      player
+      castlingRights
+      passantPosition
+      clock
+      moveNumber
+    } = ctx
+
+    [board, player, castlingRights, passantPosition, clock, moveNumber]
+
+  game-completed-response = \new-ctx ->
+    add-msg (new-ctx, 'checkmate')
+
+  game-continues-response = \new-ctx ->
+    add-msg (new-ctx, 'check')
+
+  generate-new-ctx = (new-bd, orig-ctx, src, tgt) ->
+    [orig-bd, player, rts, pass, clock, mv-nbr] = extract-props orig-ctx
+
+    board             : new-bd
+    player            : u.opposing-color player
+    castlingRights    : modifyCastlingRights (orig-bd, src, rts)
+    passantPosition   : setPassantPosition   (orig-bd, src, tgt)
+    promotionPosition : setPromotionPosition (orig-bd, src, tgt)
+    clock             : update-clock (clock)
+    moveNumber        : update-move-number (player, mv-nbr)
+
+  getPotentialKingAttacks = (bd, src) ->
+    # Start testing mode.
+    v.vow-board bd
+    v.vow-position src
+    # End testing mode.
+
+    type = x.chessman-type-at bd src
+    call ('getPotentialKingAttacks', type) (bd, src, type)
+
+  getPotentialMoves = (bd, src, rts, passant) ->
+    # Start testing mode.
+    v.vow-board bd
+    v.vow-position src
+    v.vow-castling-right-set rts
+    v.vow-passant-position passant
+    # End testing mode.
+
+    type = x.chessman-type-at bd src
+    call ('getPotentialMoves', type) (bd, src, rts, passant, type, attackable?)
+
+  get-response = (ctx, src, tgt) ->
+    [bd, player, rts, passant] = extract-props ctx
+
+    if move-legal? (bd, src, rts, passant) tgt
+      move-legal-response (ctx, src, tgt)
+    else
+      move-illegal-response ctx
+
+  in-check? = (board, color) ->
+    # Start testing mode.
+    v.vow-board board
+    v.vow-color color
+    # End testing mode.
+
+    king-pos = king-position-for (board, color)
+    attackable? (board, color, king-pos)
+
+  king-position-for = (board, color) ->
+    # Start testing mode.
+    v.vow-board board
+    v.vow-color color
+    # End testing mode.
+
+    king = if u.black? color then c.black-king else c.white-king
+    u.to-2d (board.indexOf king)
+
+  king-safe-response = \new-ctx ->
+    [new-bd, opponent] = extract-props new-ctx
+    
+    if in-check? (new-bd, opponent)
+      possible-checkmate-response (new-ctx)
+    else
+      new-ctx
+
+  king-unsafe-response = \ctx ->
+    add-msg (ctx, 'illegal move')
+
+  modifyCastlingRights = (bd, src, rts) ->
+    # Start testing mode.
+    v.vow-board bd
+    v.vow-position src
+    v.vow-castling-right-set rts
+    # End testing mode.
+
+    type = x.chessman-type-at bd src
+    call ('modifyCastlingRights', type) (rts, src)
+
+  move = (bd, src, passant) -> \tgt ->
+    # Start testing mode.
+    v.vow-board bd
+    v.vow-all-positions [src, tgt]
+    v.vow-passant-position passant
+    # End testing mode.
+
+    type = x.chessman-type-at bd src
+    call ('move', type) (bd, src, passant) tgt
+
+  move-illegal-response = \ctx ->
+    add-msg (ctx, 'illegal move')
+
+  move-legal? = (bd, src, rts, passant) -> \tgt ->
+    # Start testing mode.
+    v.vow-board bd
+    v.vow-all-positions [src, tgt]
+    v.vow-castling-right-set rts
+    v.vow-passant-position passant
+    # End testing mode.
+
+    type = x.chessman-type-at bd src
+    potential-tgts = getPotentialMoves (bd, src, rts, passant)
+    
+    contains (potential-tgts, tgt)
+
+  move-legal-response = (orig-ctx, src, tgt) ->
+    [bd, player, _, passant] = extract-props orig-ctx
+
+    new-bd = move (bd, src, passant) tgt
+
+    if in-check? (new-bd, player)
+      king-unsafe-response (orig-ctx)
+    else
+      new-ctx = generate-new-ctx (new-bd, orig-ctx, src, tgt)
+      king-safe-response (new-ctx)
+
+  navigate = \ctx ->
+    # Start testing mode.
+    v.vow-context ctx
+    # End testing mode.
+
+    window.location.hash = encodeURI (fs.encode-context ctx)
+
+  possible-checkmate-response = \new-ctx ->
+    [new-bd, opponent, _, new-passant] = extract-props new-ctx
+
+    if checkmate? (new-bd, new-passant, opponent)
+      game-completed-response (new-ctx)
+    else
+      game-continues-response (new-ctx)
+
+  promote = \ctx \chessman ->
+    new-board = u.replace (chessman, ctx.board, ctx.promotionPosition)
+    new-ctx = copy ctx
+    new-ctx.board = new-board
+    new-ctx.promotionPosition = c.unset-promotion-pos
+    new-ctx
+
+  # This function causes global side effects.
+  query-game-service = (ctx, src, tgt) ->
+    response = get-response (ctx, src, tgt)
+
+    navigate response
+
+    response
+
+  setPassantPosition = (bd, src, tgt) ->
+    # Start testing mode.
+    v.vow-board bd
+    v.vow-all-positions [src, tgt]
+    # End testing mode.
+
+    chessman = x.square-at bd src
+    type     = x.chessman-type-of chessman
+    color    = x.color-of chessman
+
+    call ('setPassantPosition', type) (color, src, tgt)
+
+  setPromotionPosition = (bd, src, tgt) ->
+    # Start testing mode.
+    v.vow-board bd
+    v.vow-all-positions [src, tgt]
+    # End testing mode.
+
+    chessman = x.square-at bd src
+    type     = x.chessman-type-of chessman
+    color    = x.color-of chessman
+
+    call ('setPromotionPosition', type) (color, tgt)
+
+  update-clock = \nbr ->
+    # Start testing mode.
+    v.vow-non-negative-integer nbr
+    # End testing mode.
+
+    nbr + 1
+
+  update-move-number = (player, mv-nbr) ->
+    # Start testing mode.
+    v.vow-color player
+    v.vow-non-negative-integer mv-nbr
+    # End testing mode.
+
+    if u.black? player then mv-nbr + 1 else mv-nbr
+
+  vulnerable-positions-for = (board, color) ->
+    # Start testing mode.
+    v.vow-board board
+    v.vow-color color
+    # End testing mode.
+
+    foe-color     = u.opposing-color (color)
+    foe-positions = x.chessman-positions-from (board, foe-color)
+
+    get-potential-king-attacks = \pos ->
+      getPotentialKingAttacks (board, pos)
+
+    Array.prototype.concat.apply ([], (foe-positions.map get-potential-king-attacks))
+
+  # Start testing mode.
+
+  test-mode = {
+    attackable?
+    checkmate?
+    getPotentialKingAttacks
+    getPotentialMoves
+    in-check?
+    king-position-for
+    modifyCastlingRights
+    move
+    move-legal?
+    promote
+    query-game-service
+    setPassantPosition
+    setPromotionPosition
+    update-clock
+    update-move-number
+    vulnerable-positions-for
+  }
+
+  return test-mode
+
+  # End testing mode.
+
+  # Start production mode.
+
+  return {
+    promote
+    query-game-service
+  }
+
+  # End production mode.
+
+
+)
